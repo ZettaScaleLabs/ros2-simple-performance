@@ -10,6 +10,18 @@ find_package(ament_cmake REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+
+add_executable(ping src/ping.cpp)
+ament_target_dependencies(ping rclcpp std_msgs)
+add_executable(pong src/pong.cpp)
+ament_target_dependencies(pong rclcpp std_msgs)
+
+install(TARGETS
+  ping
+  pong
+  DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
