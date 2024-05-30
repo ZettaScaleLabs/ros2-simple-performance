@@ -14,8 +14,8 @@ class Ping : public rclcpp::Node
     public:
         Ping() : Node("ping_node"), samples_idx_(0) {
             // Get parameters
-            this->declare_parameter("warmup", 15.0);
-            this->declare_parameter("samples", 10);
+            this->declare_parameter("warmup", 5.0);
+            this->declare_parameter("samples", 100);
             this->declare_parameter("size", 32);
             this->declare_parameter("rate", 10);
             this->warmup_ = this->get_parameter("warmup").as_double();
