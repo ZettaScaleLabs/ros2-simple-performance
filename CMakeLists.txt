@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(simple-performance)
+project(simple_performance)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -11,12 +11,24 @@ find_package(ament_cmake REQUIRED)
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
 
+# Create msgs
+find_package(rosidl_default_generators REQUIRED)
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/PingPong.msg"
+)
+
+# Build
 add_executable(ping src/ping.cpp)
-ament_target_dependencies(ping rclcpp std_msgs)
+rosidl_get_typesupport_target(cpp_typesupport_target
+    ${PROJECT_NAME} rosidl_typesupport_cpp)
+target_link_libraries(ping "${cpp_typesupport_target}")
+ament_target_dependencies(ping rclcpp)
 add_executable(pong src/pong.cpp)
-ament_target_dependencies(pong rclcpp std_msgs)
+rosidl_get_typesupport_target(cpp_typesupport_target
+    ${PROJECT_NAME} rosidl_typesupport_cpp)
+target_link_libraries(pong "${cpp_typesupport_target}")
+ament_target_dependencies(pong rclcpp)
 
 install(TARGETS
   ping

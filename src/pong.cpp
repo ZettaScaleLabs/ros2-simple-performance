@@ -1,6 +1,5 @@
 #include "rclcpp/rclcpp.hpp"
-// TODO: Use array able to set size
-#include "std_msgs/msg/string.hpp"
+#include "simple_performance/msg/ping_pong.hpp"
 
 using std::placeholders::_1;
 
@@ -10,19 +9,18 @@ class Pong : public rclcpp::Node
         Pong() : Node("pong_node") {
             // TODO: Able to configure QoS
             rclcpp::QoS qos(rclcpp::KeepLast{16});
-            ping_subscriber_ = this->create_subscription<std_msgs::msg::String>(
+            ping_subscriber_ = this->create_subscription<simple_performance::msg::PingPong>(
                 "ping", qos, std::bind(&Pong::topic_callback, this, _1));
-            pong_publisher_ = this->create_publisher<std_msgs::msg::String>("pong", qos);
+            pong_publisher_ = this->create_publisher<simple_performance::msg::PingPong>("pong", qos);
         }
   
     private:
-        void topic_callback(const std_msgs::msg::String::SharedPtr msg) const {
-            RCLCPP_INFO(this->get_logger(), "I heard: '%s'", msg->data.c_str());
-            auto message = *msg;
-            pong_publisher_->publish(message);
+        void topic_callback(const simple_performance::msg::PingPong::SharedPtr msg) const {
+            RCLCPP_INFO(this->get_logger(), "I heard: '%ld'", msg->data.size());
+            pong_publisher_->publish(*msg);
         }
-        rclcpp::Subscription<std_msgs::msg::String>::SharedPtr ping_subscriber_;
-        rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pong_publisher_;
+        rclcpp::Subscription<simple_performance::msg::PingPong>::SharedPtr ping_subscriber_;
+        rclcpp::Publisher<simple_performance::msg::PingPong>::SharedPtr pong_publisher_;
 };
 
 int main(int argc, char * argv[])
