@@ -7,7 +7,7 @@ Simple ROS 2 benchmark tool
 ```shell
 mkdir -p ~/ros2_performance_ws/src && cd ~/ros2_performance_ws/src
 git clone https://github.com/evshary/ros2-simple-performance.git
-cd ../..
+cd ..
 colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 ```
 
