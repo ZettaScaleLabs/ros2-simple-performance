@@ -16,13 +16,13 @@ colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_E
 * Terminal 1: Run pong
 
 ```shell
-ros2 run simple-performance pong
+ros2 run simple_performance pong
 ```
 
 * Terminal 2: Run ping
 
 ```shell
-ros2 run simple-performance ping
+ros2 run simple_performance ping
 # Other configuration
-ros2 run simple-performance ping --ros-args -p warmup:=15.0 -p size:=32
+ros2 run simple_performance ping --ros-args -p warmup:=5.0 -p size:=32 -p samples:=100 -p rate:=10
 ```
