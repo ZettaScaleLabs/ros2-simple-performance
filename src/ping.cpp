@@ -1,5 +1,6 @@
 #include <iostream>
 #include <chrono>
+#include <algorithm>
 #include "rclcpp/rclcpp.hpp"
 #include "simple_performance/msg/ping_pong.hpp"
 
@@ -15,12 +16,15 @@ class Ping : public rclcpp::Node
             this->declare_parameter("warmup", 15.0);
             this->declare_parameter("samples", 10);
             this->declare_parameter("size", 32);
+            this->declare_parameter("rate", 10);
             this->warmup_ = this->get_parameter("warmup").as_double();
             this->samples_ = this->get_parameter("samples").as_int();
             this->payload_size_ = this->get_parameter("size").as_int();
+            this->rate_ = this->get_parameter("rate").as_int();
             std::cout << "Warm up time (sec): " << this->warmup_ << std::endl;
             std::cout << "Samples number: " << this->samples_ << std::endl;
             std::cout << "Pyaload size (bytes): " << this->payload_size_ << std::endl;
+            std::cout << "Publish rate (Hz): " << this->rate_ << std::endl;
 
             // Create the message
             message_ = std::make_shared<simple_performance::msg::PingPong>();
@@ -33,7 +37,7 @@ class Ping : public rclcpp::Node
             ping_publisher_ = this->create_publisher<simple_performance::msg::PingPong>("ping", qos);
             pong_subscriber_ = this->create_subscription<simple_performance::msg::PingPong>(
                 "pong", qos, std::bind(&Ping::recv_pong_callback, this, _1));
-            timer_ = this->create_wall_timer(500ms, std::bind(&Ping::timer_callback, this));
+            timer_ = this->create_wall_timer(milliseconds(std::clamp(1000/this->rate_, 0, 1000)), std::bind(&Ping::timer_callback, this));
         }
         
         bool is_stop() {
@@ -75,6 +79,7 @@ class Ping : public rclcpp::Node
         size_t samples_idx_;
         size_t payload_size_;
         float warmup_;
+        int rate_;
         simple_performance::msg::PingPong::SharedPtr message_;
         std::vector<double> result_;
 };
