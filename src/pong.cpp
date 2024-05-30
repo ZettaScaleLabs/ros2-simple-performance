@@ -16,8 +16,8 @@ class Pong : public rclcpp::Node
   
     private:
         void topic_callback(const simple_performance::msg::PingPong::SharedPtr msg) const {
-            RCLCPP_INFO(this->get_logger(), "I heard: '%ld'", msg->data.size());
             pong_publisher_->publish(*msg);
+            RCLCPP_INFO(this->get_logger(), "Receiving data size: %ld", msg->data.size());
         }
         rclcpp::Subscription<simple_performance::msg::PingPong>::SharedPtr ping_subscriber_;
         rclcpp::Publisher<simple_performance::msg::PingPong>::SharedPtr pong_publisher_;

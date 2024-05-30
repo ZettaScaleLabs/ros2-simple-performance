@@ -1,6 +1,9 @@
+#include <iostream>
+#include <chrono>
 #include "rclcpp/rclcpp.hpp"
 #include "simple_performance/msg/ping_pong.hpp"
 
+using namespace std::chrono;
 using namespace std::chrono_literals;
 using std::placeholders::_1;
 
@@ -29,19 +32,31 @@ class Ping : public rclcpp::Node
             rclcpp::QoS qos(rclcpp::KeepLast{16});
             ping_publisher_ = this->create_publisher<simple_performance::msg::PingPong>("ping", qos);
             pong_subscriber_ = this->create_subscription<simple_performance::msg::PingPong>(
-                "pong", qos, std::bind(&Ping::topic_callback, this, _1));
+                "pong", qos, std::bind(&Ping::recv_pong_callback, this, _1));
             timer_ = this->create_wall_timer(500ms, std::bind(&Ping::timer_callback, this));
         }
   
     private:
         void timer_callback() {
-            // TODO: Add timestamp
-            RCLCPP_INFO(this->get_logger(), "Publishing: size='%ld'", message_->data.size());
+            time_point<high_resolution_clock> start = high_resolution_clock::now();
+            // Put the start time inside the message
+            uint8_t *ptr = (uint8_t *)&start;
+            for (auto i = 0; i < sizeof(start); i++) {
+                message_->data[i] = *(ptr + i); 
+            }
             ping_publisher_->publish(*message_);
         }
-        void topic_callback(const simple_performance::msg::PingPong::SharedPtr msg) const {
-            RCLCPP_INFO(this->get_logger(), "I heard: size='%ld'", msg->data.size());
-            // TODO: Receive timestamp and calculate RTT
+        void recv_pong_callback(const simple_performance::msg::PingPong::SharedPtr msg) const {
+            time_point<high_resolution_clock> stop = high_resolution_clock::now();
+            // Retrieve the start time from the message
+            time_point<high_resolution_clock> start;
+            uint8_t *ptr = (uint8_t *)&start;
+            for (auto i = 0; i < sizeof(start); i++) {
+                *(ptr + i) = message_->data[i]; 
+            }
+            // Get RTT and RTT/2
+            auto rtt = duration<double, std::micro>(stop - start).count();
+            RCLCPP_INFO(this->get_logger(), "RTT: %lf(us), RTT/2: %lf(us)", rtt, rtt/2);
         }
   
         rclcpp::TimerBase::SharedPtr timer_;
