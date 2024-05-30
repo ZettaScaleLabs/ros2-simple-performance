@@ -49,6 +49,18 @@ class Ping : public rclcpp::Node
             return (this->samples_idx_ >= this->samples_) && 
                     (now - this->start_time_ > duration<double, std::milli>((this->total_expected_time_)  * 1000));
         }
+
+        void show_result() {
+            sort(this->result_.begin(), this->result_.end());
+            size_t result_size = this->result_.size();
+            std::cout << "RTT min: " << this->result_[0] << std::endl;
+            std::cout << "RTT max: " << this->result_[result_size-1] << std::endl;
+            if (result_size % 2 == 0) {
+                std::cout << "RTT mean: " << (this->result_[result_size/2 - 1] + this->result_[result_size/2] ) / 2 << std::endl;
+            } else {
+                std::cout << "RTT mean: " << this->result_[result_size/2] << std::endl;
+            }
+        }
   
     private:
         void timer_callback() {
@@ -104,7 +116,7 @@ int main(int argc, char *argv[]) {
     while (!ping_node->is_stop()) {
         rclcpp::spin_some(ping_node);
     }
-    // TODO: Able to get the summary
+    ping_node->show_result();
     rclcpp::shutdown();
     return 0;
 }
