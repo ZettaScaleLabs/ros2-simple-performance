@@ -53,13 +53,14 @@ class Ping : public rclcpp::Node
         void show_result() {
             sort(this->result_.begin(), this->result_.end());
             size_t result_size = this->result_.size();
-            std::cout << "RTT min(us): " << this->result_[0] << std::endl;
-            std::cout << "RTT max(us): " << this->result_[result_size-1] << std::endl;
+            std::cout << "RTT min(us):" << this->result_[0] << ",";
+            std::cout << "RTT max(us):" << this->result_[result_size-1] << ",";
             if (result_size % 2 == 0) {
-                std::cout << "RTT median(us): " << (this->result_[result_size/2 - 1] + this->result_[result_size/2] ) / 2 << std::endl;
+                std::cout << "RTT median(us):" << (this->result_[result_size/2 - 1] + this->result_[result_size/2] ) / 2 << ",";
             } else {
-                std::cout << "RTT median(us): " << this->result_[result_size/2] << std::endl;
+                std::cout << "RTT median(us):" << this->result_[result_size/2] << ",";
             }
+            std::cout << "Loss rate:" << (float)(this->samples_ - this->result_.size()) / (float)this->samples_ << std::endl;
         }
   
     private:
