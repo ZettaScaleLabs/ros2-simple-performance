@@ -1,14 +1,25 @@
 #include "rclcpp/rclcpp.hpp"
 #include "simple_performance/msg/ping_pong.hpp"
+#include "simple_performance/qos.hpp"
 
 using std::placeholders::_1;
 
-class Pong : public rclcpp::Node
+class Pong : public rclcpp::Node, public QoS
 {
     public:
         Pong() : Node("pong_node") {
-            // TODO: Able to configure QoS
-            rclcpp::QoS qos(rclcpp::KeepLast{16});
+            this->declare_parameter("reliability", "RELIABLE");
+            this->declare_parameter("history", "KEEP_LAST");
+            this->declare_parameter("history_depth", 16);
+            this->declare_parameter("durability", "VOLATILE");
+            this->reliability_ = this->get_parameter("reliability").as_string();
+            this->history_ = this->get_parameter("history").as_string();
+            this->history_depth_ = this->get_parameter("history_depth").as_int();
+            this->durability_ = this->get_parameter("durability").as_string();
+
+            // Configure QoS
+            auto qos = this->getQoS();
+            this->printQoS();
             ping_subscriber_ = this->create_subscription<simple_performance::msg::PingPong>(
                 "ping", qos, std::bind(&Pong::topic_callback, this, _1));
             pong_publisher_ = this->create_publisher<simple_performance::msg::PingPong>("pong", qos);

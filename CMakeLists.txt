@@ -18,6 +18,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/PingPong.msg"
 )
 
+# include directories
+include_directories(include)
+
 # Build
 add_executable(ping src/ping.cpp)
 rosidl_get_typesupport_target(cpp_typesupport_target

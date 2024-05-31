@@ -19,6 +19,8 @@ colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_E
 ros2 run simple_performance pong
 # Run without info
 ros2 run simple_performance pong --ros-args --log-level warn
+# Run with QoS
+ros2 run simple_performance pong --ros-args -p reliability:=BEST_EFFORT -p durability:=TRANSIENT_LOCAL -p history:=KEEP_ALL
 ```
 
 * Terminal 2: Run ping
@@ -27,6 +29,8 @@ ros2 run simple_performance pong --ros-args --log-level warn
 ros2 run simple_performance ping
 # Run without info
 ros2 run simple_performance ping --ros-args --log-level warn
+# Run with QoS
+ros2 run simple_performance ping --ros-args -p reliability:=BEST_EFFORT -p durability:=TRANSIENT_LOCAL -p history:=KEEP_ALL
 # Other configuration
 ros2 run simple_performance ping --ros-args -p warmup:=5.0 -p size:=32 -p samples:=100 -p rate:=10
 ```

@@ -4,12 +4,13 @@
 #include <atomic>
 #include "rclcpp/rclcpp.hpp"
 #include "simple_performance/msg/ping_pong.hpp"
+#include "simple_performance/qos.hpp"
 
 using namespace std::chrono;
 using namespace std::chrono_literals;
 using std::placeholders::_1;
 
-class Ping : public rclcpp::Node
+class Ping : public rclcpp::Node, public QoS
 {
     public:
         Ping() : Node("ping_node"), samples_idx_(0) {
@@ -18,10 +19,19 @@ class Ping : public rclcpp::Node
             this->declare_parameter("samples", 100);
             this->declare_parameter("size", 32);
             this->declare_parameter("rate", 10);
+            this->declare_parameter("reliability", "RELIABLE");
+            this->declare_parameter("history", "KEEP_LAST");
+            this->declare_parameter("history_depth", 16);
+            this->declare_parameter("durability", "VOLATILE");
+            this->reliability_ = this->get_parameter("reliability").as_string();
+            this->history_ = this->get_parameter("history").as_string();
+            this->history_depth_ = this->get_parameter("history_depth").as_int();
+            this->durability_ = this->get_parameter("durability").as_string();
             this->warmup_ = this->get_parameter("warmup").as_double();
             this->samples_ = this->get_parameter("samples").as_int();
             this->payload_size_ = this->get_parameter("size").as_int();
             this->rate_ = this->get_parameter("rate").as_int();
+
             std::cout << "Warm up time (sec): " << this->warmup_ << std::endl;
             std::cout << "Samples number: " << this->samples_ << std::endl;
             std::cout << "Pyaload size (bytes): " << this->payload_size_ << std::endl;
@@ -36,8 +46,9 @@ class Ping : public rclcpp::Node
             this->start_time_ = high_resolution_clock::now();
             this->total_expected_time_ = this->warmup_ + ((float)this->samples_ / (float)this->rate_);
 
-            // TODO: Able to configure QoS (reliability, history, durability)
-            rclcpp::QoS qos(rclcpp::KeepLast{16});
+            // Configure QoS
+            auto qos = this->getQoS();
+            this->printQoS();
             ping_publisher_ = this->create_publisher<simple_performance::msg::PingPong>("ping", qos);
             pong_subscriber_ = this->create_subscription<simple_performance::msg::PingPong>(
                 "pong", qos, std::bind(&Ping::recv_pong_callback, this, _1));
@@ -100,12 +111,14 @@ class Ping : public rclcpp::Node
         rclcpp::TimerBase::SharedPtr timer_;
         rclcpp::Publisher<simple_performance::msg::PingPong>::SharedPtr ping_publisher_;
         rclcpp::Subscription<simple_performance::msg::PingPong>::SharedPtr pong_subscriber_;
+        // Argument
         size_t samples_;
-        std::atomic<std::size_t> samples_idx_;
         size_t payload_size_;
         float warmup_;
-        float total_expected_time_;
         int rate_;
+        // Internal usage
+        float total_expected_time_;
+        std::atomic<std::size_t> samples_idx_;
         simple_performance::msg::PingPong::SharedPtr message_;
         std::vector<double> result_;
         time_point<high_resolution_clock> start_time_;
