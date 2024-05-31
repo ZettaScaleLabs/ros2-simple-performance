@@ -35,7 +35,7 @@ class QoS
         }
 
         void printQoS() {
-            std::cout << "QoS:" << this->reliability_ << "," << this->durability_ << "," << this-> history_;
+            std::cout << "QoS: " << this->reliability_ << "," << this->durability_ << "," << this-> history_;
             if (this->history_ == "KEEP_LAST") {
                 std::cout << "(" << this->history_depth_ << ")" << std::endl;
             } else {

@@ -71,7 +71,7 @@ class Ping : public rclcpp::Node, public QoS
             } else {
                 std::cout << "RTT median(us):" << this->result_[result_size/2] << ",";
             }
-            std::cout << "Loss rate:" << (float)(this->samples_ - this->result_.size()) / (float)this->samples_ << std::endl;
+            std::cout << "Loss:" << this->samples_ - this->result_.size() << std::endl;
         }
   
     private:
