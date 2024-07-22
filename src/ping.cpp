@@ -62,6 +62,9 @@ class Ping : public rclcpp::Node, public QoS
         }
 
         void show_result() {
+            // Disable the scientific notation globally
+            std::cout << std::fixed;
+
             sort(this->result_.begin(), this->result_.end());
             size_t result_size = this->result_.size();
             std::cout << "RTT min(us):" << this->result_[0] << ",";
