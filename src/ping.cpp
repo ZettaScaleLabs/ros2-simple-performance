@@ -42,7 +42,7 @@ class Ping : public rclcpp::Node, public QoS
             message_->data.resize(this->payload_size_);
             std::fill(message_->data.begin(), message_->data.end(), 0);
 
-            // Init 
+            // Init
             this->start_time_ = high_resolution_clock::now();
             this->total_expected_time_ = this->warmup_ + ((float)this->samples_ / (float)this->rate_);
 
@@ -54,63 +54,90 @@ class Ping : public rclcpp::Node, public QoS
                 "pong", qos, std::bind(&Ping::recv_pong_callback, this, _1));
             timer_ = this->create_wall_timer(milliseconds(std::clamp(1000/this->rate_, 0, 1000)), std::bind(&Ping::timer_callback, this));
         }
-        
-        bool is_stop() {
-            time_point<high_resolution_clock> now = high_resolution_clock::now();
-            return (this->samples_idx_ >= this->samples_) && 
-                    (now - this->start_time_ > duration<double, std::milli>((this->total_expected_time_)  * 1000));
+
+        bool is_running() {
+            if (this->samples_idx_ < this->samples_) {
+                return true;
+            }
+
+            const auto now = high_resolution_clock::now();
+            const auto elapsed_ms = duration_cast<milliseconds>(now - this->start_time_).count();
+            if (elapsed_ms <= this->total_expected_time_) {
+                return true;
+            }
+
+            return false;
         }
 
         void show_result() {
-            // Disable the scientific notation globally
-            std::cout << std::fixed;
+            if (this->result_.empty()) {
+                std::cout << "[ERROR] Empty results." << std::endl;
+                return;
+            }
+
+            const size_t N = this->result_.size();
+            if (N > this->samples_) {
+                std::cout << "[ERROR] Received " << N << " messages which should not be greater than the total samples " << this->samples_ << std::endl;
+                return;
+            }
 
             sort(this->result_.begin(), this->result_.end());
-            size_t result_size = this->result_.size();
-            std::cout << "RTT min(us):" << this->result_[0] << ",";
-            std::cout << "RTT max(us):" << this->result_[result_size-1] << ",";
-            if (result_size % 2 == 0) {
-                std::cout << "RTT median(us):" << (this->result_[result_size/2 - 1] + this->result_[result_size/2] ) / 2 << ",";
-            } else {
-                std::cout << "RTT median(us):" << this->result_[result_size/2] << ",";
-            }
-            std::cout << "Loss:" << this->samples_ - this->result_.size() << std::endl;
+            std::cout << "[RTT(us)] "
+                << "min: " << this->result_[0] << ", "
+                << "p05: " << this->result_[N * 0.05] << ", "
+                << "p50: " << this->result_[N * 0.50] << ", "
+                << "p95: " << this->result_[N * 0.95] << ", "
+                << "max: " << this->result_[N - 1] << std::endl;
+
+            std::cout << "[Loss(%)] " << (this->samples_ - N) * 100 / this->samples_ << std::endl;
         }
-  
+
     private:
         void timer_callback() {
-            if (this->samples_idx_ < this->samples_) {
-                time_point<high_resolution_clock> t1 = high_resolution_clock::now();
-                // Put the start time inside the message
-                uint8_t *ptr = (uint8_t *)&t1;
-                for (unsigned long i = 0; i < sizeof(t1); i++) {
-                    message_->data[i] = *(ptr + i); 
-                }
-                ping_publisher_->publish(*message_);
-                // Start to calculate after warmup
-                if (t1 - this->start_time_ > duration<double, std::milli>(this->warmup_ * 1000)) {
-                    this->samples_idx_++;
-                }
+            if (this->samples_idx_ >= this->samples_) {
+                return;
             }
+
+            // Generate the timestamp
+            const auto now = high_resolution_clock::now();
+            uint64_t timestamp = duration_cast<microseconds>(now.time_since_epoch()).count();
+            std::memmove(message_->data.data(), &timestamp, sizeof(timestamp));
+
+            // Publish the message
+            ping_publisher_->publish(*message_);
+
+            // Start to calculate after warmup
+            if (this->is_warmup_done()) {
+                this->samples_idx_++;
+            }
+        }
+
+        bool is_warmup_done() {
+            // Check if it's still in warmup
+            if (!this->warmup_done_) {
+                const auto now = high_resolution_clock::now();
+                this->warmup_done_ = duration_cast<milliseconds>(now - this->start_time_).count() > (this->warmup_ * 1000);
+            }
+            return this->warmup_done_;
         }
 
         void recv_pong_callback(const simple_performance::msg::PingPong::SharedPtr msg) {
-            time_point<high_resolution_clock> t2 = high_resolution_clock::now();
-            // Retrieve the start time from the message
-            time_point<high_resolution_clock> t1;
-            uint8_t *ptr = (uint8_t *)&t1;
-            for (unsigned long i = 0; i < sizeof(t1); i++) {
-                *(ptr + i) = msg->data[i]; 
-            }
-            // Get RTT and RTT/2
-            auto rtt = duration<double, std::micro>(t2 - t1).count();
+            uint64_t pre_timestamp;
+            std::memmove(&pre_timestamp, msg->data.data(), sizeof(pre_timestamp));
+
+            const auto now = high_resolution_clock::now();
+            uint64_t cur_timestamp = duration_cast<microseconds>(now.time_since_epoch()).count();
+            // Get RTT and RTT/2 in microseconds
+            auto rtt = cur_timestamp - pre_timestamp;
+
+
             // Start to record after warmup
-            if (t2 - this->start_time_ > duration<double, std::milli>(this->warmup_ * 1000)) {
-                RCLCPP_INFO(this->get_logger(), "RTT: %lf(us), RTT/2: %lf(us)", rtt, rtt/2);
+            if (this->is_warmup_done()) {
+                RCLCPP_INFO(this->get_logger(), "RTT: %ld(us), RTT/2: %ld(us)", rtt, rtt / 2);
                 this->result_.push_back(rtt);
             }
         }
-  
+
         rclcpp::TimerBase::SharedPtr timer_;
         rclcpp::Publisher<simple_performance::msg::PingPong>::SharedPtr ping_publisher_;
         rclcpp::Subscription<simple_performance::msg::PingPong>::SharedPtr pong_subscriber_;
@@ -118,6 +145,7 @@ class Ping : public rclcpp::Node, public QoS
         size_t samples_;
         size_t payload_size_;
         float warmup_;
+        bool warmup_done_ = false;
         int rate_;
         // Internal usage
         float total_expected_time_;
@@ -129,8 +157,8 @@ class Ping : public rclcpp::Node, public QoS
 
 int main(int argc, char *argv[]) {
     rclcpp::init(argc, argv);
-    auto ping_node = std::make_shared<Ping>(); 
-    while (!ping_node->is_stop()) {
+    auto ping_node = std::make_shared<Ping>();
+    while (ping_node->is_running()) {
         rclcpp::spin_some(ping_node);
     }
     ping_node->show_result();
