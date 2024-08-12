@@ -82,6 +82,10 @@ class Ping : public rclcpp::Node, public QoS
             }
 
             sort(this->result_.begin(), this->result_.end());
+
+            // Disable the scientific notation globally
+            std::cout << std::fixed;
+
             std::cout << "[RTT(us)] "
                 << "min: " << this->result_[0] << ", "
                 << "p05: " << this->result_[N * 0.05] << ", "
