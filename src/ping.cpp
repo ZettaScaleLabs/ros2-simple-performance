@@ -78,7 +78,7 @@ class Ping : public rclcpp::Node, public QoS
             const size_t N = this->result_.size();
             if (N > this->samples_) {
                 std::cout << "[ERROR] Received " << N << " messages which should not be greater than the total samples " << this->samples_ << std::endl;
-                return;
+                // return; // TODO: I prefer to still have the numbers instead of having a blank point
             }
 
             sort(this->result_.begin(), this->result_.end());
